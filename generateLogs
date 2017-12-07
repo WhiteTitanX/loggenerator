@@ -1,0 +1,189 @@
+#!/bin/bash
+
+#Add a user
+addUser(){
+	randomNumber=$((RANDOM%$maxnum));
+	if checkUser user${randomNumber} ; then
+		#echo "Failed to add user";
+		return;
+	fi
+	sudo useradd -M user${randomNumber};
+	users[ui]="user${randomNumber}";
+	ui=$((ui+1));
+	#printf "Added User: user${randomNumber}\n";	
+}
+
+#Remove a user
+removeUser(){
+	if checkUser $1 ; then
+		sudo userdel $1
+		ui=$((ui-1));
+		#printf "Removed User: $1\n"; 
+	fi
+}
+
+#Check if user exists
+checkUser(){
+	user=$(grep $1 /etc/passwd);
+	if [ "$user" == "" ]; then
+		#echo "$1 does not exist";
+		return 1;
+	fi
+	#echo "$1 does exist";
+	return 0;
+}
+
+#Creates a file in /home dir
+addFile(){
+	randomNumber=$((RANDOM%$maxnum));
+	if checkFile file${randomNumber} ; then
+		#echo "Failed to create file";
+		return;
+	fi
+	sudo touch /home/file${randomNumber};
+	files[ffi]="file${randomNumber}";
+ 	ffi=$((ffi+1));
+ 	#printf "Added File: file${randomNumber}\n";
+}
+
+#Remove a file
+removeFile(){
+	if checkFile $1 ; then
+ 		sudo rm /home/$1
+ 		ffi=$((ffi-1));
+		#printf "Removed File: $1\n";
+ 	fi
+}
+
+#Check if file exists
+checkFile(){
+	if [ -e /home/$1 ]; then
+		#echo "$1 exists";
+		return 0;
+	fi
+	#echo "$1 does not exist"
+	return 1;
+}
+
+
+#These functions will be called in the main while loop
+addUserAuto(){
+	if [ "${#users[@]}" -lt "$max" ]; then
+		addUser;
+	fi
+}
+
+addFileAuto(){
+	if [ "${#files[@]}" -lt "$max" ]; then
+		addFile;
+	fi  
+}
+
+removeUserAuto(){
+	if [ "${#users[@]}" -ge "1" ]; then
+		removeUser ${users[${#users[@]}-1]};
+		users=("${users[@]:0:(${#users[@]}-1)}");
+	fi
+}
+
+removeFileAuto(){
+	if [ "${#files[@]}" -ge "1" ]; then
+		removeFile ${files[${#files[@]}-1]};
+		files=("${files[@]:0:(${#files[@]}-1)}");
+	fi
+}
+
+#Clear the screen
+clear 
+
+#Max range number -1 of users/files
+maxnum=40;
+
+#Max amount of files/users
+max=20;
+
+#Create arrays
+users=();
+files=();
+
+#Create array counters
+ui=0;
+ffi=0;
+
+#Sample add and remove user
+#addUser
+#removeUser ${users[${#users[@]}-1]};
+
+#Sample add and remove file
+#addFile
+#removeFile ${files[${#files[@]}-1]};
+
+if [ "$max" -gt "$maxnum" ]; then
+	printf "ERROR: 'max' cannot be greater than 'maxnum'\n";
+	exit;
+fi
+
+while true; do
+	randomNumber=$((RANDOM%4));
+	case $randomNumber in
+		0)
+			addUserAuto;
+			;;
+		1)
+			removeUserAuto;
+			randomNumber=$((RANDOM%2));
+			if [ "$randomNumber" -eq "0" ]; then
+				addUserAuto;
+			fi
+			;;
+		2)
+			addFileAuto;
+			;;
+		3)
+			removeFileAuto;
+			randomNumber=$((RANDOM%2));
+			if [ "$randomNumber" -eq "0" ]; then
+				addFileAuto;
+			fi
+			;;
+	esac
+	clear
+	printf "      ___       ___           ___           ___     \n";
+	printf "     /\\__\\     /\\  \\         /\\  \\         /\\  \\    \n";
+	printf "    /:/  /    /::\\  \\       /::\\  \\       /::\\  \\   \n";
+	printf "   /:/  /    /:/\\:\\  \\     /:/\\:\\  \\     /:/\\ \\  \\  \n";
+	printf "  /:/  /    /:/  \\:\\  \\   /:/  \\:\\  \\   _\\:\\~\\ \\  \\ \n";
+	printf " /:/__/    /:/__/ \\:\\__\\ /:/__/_\\:\\__\\ /\\ \\:\\ \\ \\__\\ \n";
+	printf " \\:\\  \\    \\:\\  \\ /:/  / \\:\\  /\\ \\/__/ \\:\\ \\:\\ \\/__/\n";
+	printf "  \\:\\  \\    \\:\\  /:/  /   \\:\\ \\:\\__\\    \\:\\ \\:\\__\\  \n";
+	printf "   \\:\\  \\    \\:\\/:/  /     \\:\\/:/  /     \\:\\/:/  /  \n";
+	printf "    \\:\\__\    \\::/  /       \\::/  /       \\::/  /   \n";
+	printf "     \\/__/     \\/__/         \\/__/         \\/__/    \n";
+	printf "\n By Alex C.\n\n";
+	printf " Total Users: ${#users[@]} {";
+	for i in "${users[@]}"; do
+		printf "$i, ";
+	done
+	printf "}\n Total Files: ${#files[@]} {";
+	for i in "${files[@]}"; do
+		printf "$i, ";
+	done
+	printf "}\n ";
+	read -t 0.5 input;
+	if [ "$input" == "e" ]; then
+		break;
+	fi
+	sleep 0.25;
+done
+
+#Cleaning up users and files
+printf "\n Exiting script!\n Cleaning up!\n";
+for i in "${users[@]}"; do
+	removeUser $i
+	printf " Removed User: $i\n";
+done
+for i in "${files[@]}"; do
+	removeFile $i
+	printf " Removed File: $i\n";
+done
+printf " Done!\n ";
